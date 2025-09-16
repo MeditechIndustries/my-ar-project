@@ -11,7 +11,7 @@
   <!-- MindAR A-Frame integration (CDN) -->
   <!-- Nota: MindAR puede actualizar versiones; la documentación oficial explica cómo usar la versión adecuada. -->
   <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.4/dist/mindar-image-aframe.prod.js"></script>
-
+  
   <style>
     html,body { height:100%; margin:0; background:#000; }
     #ui-overlay {
@@ -227,6 +227,26 @@
       // Puedes añadir aquí botones del DOM para cambiar CONFIG.mode dinámicamente,
       // o cambiar la ruta del video en tiempo de ejecución (videoEl.src = '...';)
     });
+
   </script>
+
+ <!-- Aquí va tu script personalizado -->
+    <script>
+      // Seleccionamos la escena
+      const sceneEl = document.querySelector('a-scene');
+
+      // Si ocurre un error en la inicialización de MindAR, lo capturamos
+      sceneEl.addEventListener('arError', (e) => {
+        console.error('MindAR error →', e);
+        alert("Error iniciando la cámara o MindAR. Revisa permisos o HTTPS.");
+      });
+
+      // También puedes depurar cuando se piden permisos
+      sceneEl.addEventListener('arReady', (e) => {
+        console.log("MindAR está listo y la cámara funciona correctamente");
+      });
+    </script>
+  
 </body>
+
 </html>
