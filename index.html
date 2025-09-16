@@ -1,48 +1,231 @@
-<!DOCTYPE html>
-<html>
+<!doctype html>
+<html lang="es">
 <head>
   <meta charset="utf-8" />
-  <title>AR con marcador</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>MeditechAR (Video / Slides / Audio / ImageFlash)</title>
+
+  <!-- A-Frame (para la escena 3D) -->
   <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
+
+  <!-- MindAR A-Frame integration (CDN) -->
+  <!-- Nota: MindAR puede actualizar versiones; la documentación oficial explica cómo usar la versión adecuada. -->
   <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
+
   <style>
-    body, html {
-      margin: 0;
-      overflow: hidden;
-      width: 100%;
-      height: 100%;
+    html,body { height:100%; margin:0; background:#000; }
+    #ui-overlay {
+      position: fixed; bottom: 10px; left: 10px; z-index: 1000;
+      color: #fff; font-family: Arial, sans-serif;
+    }
+    #play-fallback {
+      display:none;
+      background:#0009; color:#fff; padding:8px 12px; border-radius:6px;
+      cursor:pointer;
     }
   </style>
 </head>
 <body>
-  <a-scene
-    mindar-image="imageTargetSrc: ./targets.mind;"
-    embedded
-    color-space="sRGB"
-    renderer="colorManagement: true, physicallyCorrectLights"
-    vr-mode-ui="enabled: false"
-    device-orientation-permission-ui="enabled: true">
+  <!-- ========== CONFIGURACIÓN RÁPIDA ========== 
+       Cambia aquí el modo y fuentes. 
+       mode: "video" | "slideshow" | "audio" | "imageFlash"
+  -->
+  <script>
+    const CONFIG = {
+      // modo: 'video' | 'slideshow' | 'audio' | 'imageFlash'
+      mode: 'video',
 
+      // Para "video"
+      videoSrc: 'assets/MEDITECH_INDUSTRIES_25.mp4', // ruta del video (o CDN)
+
+      // Para "slideshow" (usa imágenes en assets/slides)
+      slides: [
+        'assets/slides/slide1.jpg',
+        'assets/slides/slide2.jpg',
+        'assets/slides/slide3.jpg'
+      ],
+      slideDurationMs: 2500, // ms por diapositiva
+
+      // Para "audio" (puedes mostrar una imagen o poster mientras suena)
+      audioSrc: 'assets/audio/narration.mp3',
+      audioPoster: 'assets/slides/slide1.jpg',
+
+      // Para "imageFlash" (mostrar imagen breve)
+      flashImage: 'assets/slides/slide2.jpg',
+      flashDurationMs: 700,
+
+      // Target index (si usaste varios targets en targets.mind)
+      targetIndex: 0,
+
+      // Tamaño y posición del plano (ajusta según tu target)
+      planeWidth: 1.0,   // ancho del plano en unidades de A-Frame (ajustar)
+      planeHeight: 0.6,  // alto del plano
+      // rotation: plano rotado si quieres que quede perpendicular al marcador
+      planeRotation: "-90 0 0"
+    };
+  </script>
+
+  <!-- Elementos MEDIA (assets system de A-Frame) -->
+  <a-scene mindar-image="imageTargetSrc: targets.mind; maxTrack: 1;" embedded color-space="sRGB">
     <a-assets>
-      <video id="my-video" autoplay loop="true" muted playsinline src="./assets/MEDITECH_INDUSTRIES_25.mp4"></video>
+      <!-- Video como asset (no mostrado por separado) -->
+      <video id="ar-video" src="" playsinline webkit-playsinline muted preload="auto" crossorigin="anonymous"></video>
+
+      <!-- Slides: nos los cargamos dinámicamente en JS -->
+      <!-- Audio -->
+      <audio id="ar-audio" src="" preload="auto"></audio>
+
+      <!-- Poster / imagen por defecto (opcional) -->
+      <img id="poster" src="" crossorigin="anonymous"/>
     </a-assets>
 
-    <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
+    <!-- Cámara necesaria -->
+    <a-camera position="0 0 0"></a-camera>
 
-    <!-- Aquí se asocia el targetIndex con el marcador que definiste -->
-    <a-entity mindar-image-target="targetIndex: 0">
-      <a-video src="#my-video" width="1" height="0.6" position="0 0 0"></a-video>
+    <!-- Anchor: el contenido se "ancla" al targetIndex definido -->
+    <a-entity mindar-image-target="targetIndex: 0" id="ar-anchor">
+
+      <!-- Plano principal sobre el que proyectamos video/imagen/slides -->
+      <a-plane id="ar-plane"
+               position="0 0 0"
+               rotation="" 
+               width="" height=""
+               material="shader: flat; src: #ar-video;">
+      </a-plane>
+
+      <!-- Si necesitas elementos separados (texto, botones) ponlos aquí -->
     </a-entity>
   </a-scene>
 
+  <!-- UI ligera para fallback (si play() falla en móvil) -->
+  <div id="ui-overlay">
+    <div id="play-fallback">Tocar para reproducir</div>
+  </div>
+
   <script>
-    const sceneEl = document.querySelector('a-scene');
-    sceneEl.addEventListener('arError', (e) => {
-      console.error('MindAR error →', e);
-      alert("Error iniciando la cámara o cargando el marcador.");
-    });
-    sceneEl.addEventListener('arReady', () => {
-      console.log("✅ MindAR listo, cámara funcionando");
+    // ========= Inicialización después de DOMContentLoaded =========
+    document.addEventListener('DOMContentLoaded', async () => {
+      // Referencias a elementos
+      const videoEl = document.querySelector('#ar-video');
+      const audioEl = document.querySelector('#ar-audio');
+      const posterEl = document.querySelector('#ar-video');
+      const planeEl = document.querySelector('#ar-plane');
+      const anchorEl = document.querySelector('#ar-anchor');
+      const playFallback = document.querySelector('#play-fallback');
+
+      // Ajusta tamaño/rotación del plano según CONFIG
+      planeEl.setAttribute('width', CONFIG.planeWidth);
+      planeEl.setAttribute('height', CONFIG.planeHeight);
+      planeEl.setAttribute('rotation', CONFIG.planeRotation);
+
+      // ponemos las fuentes en los assets
+      // dependiendo del modo, las rutas pueden ser locales (misma repo) o CDN público
+      if (CONFIG.mode === 'video') {
+        videoEl.src = CONFIG.videoSrc;
+        // importante: para compatibilidad móvil, usar muted + playsinline
+        // si necesitas audio real, lo activas tras un gesto del usuario.
+        planeEl.setAttribute('material', `shader: flat; src: #ar-video`);
+      } else if (CONFIG.mode === 'audio') {
+        audioEl.src = CONFIG.audioSrc;
+        posterEl.src = CONFIG.audioPoster || '';
+        planeEl.setAttribute('material', `shader: flat; src: #ar-video`);
+      } else if (CONFIG.mode === 'slideshow' || CONFIG.mode === 'imageFlash') {
+        // cargamos la primera slide en poster para que el plano tenga textura inicial
+        if (CONFIG.slides && CONFIG.slides.length > 0) {
+          posterEl.src = CONFIG.slides[0];
+          planeEl.setAttribute('material', `shader: flat; src: #ar-video`);
+        }
+      }
+
+      // Variables para slideshow/flash
+      let slideIndex = 0;
+      let slideInterval = null;
+
+      // Fallback: si video.play() falla por política autoplay, mostrar botón/play overlay
+      const showPlayFallback = () => {
+        playFallback.style.display = 'inline-block';
+      };
+      const hidePlayFallback = () => {
+        playFallback.style.display = 'none';
+      };
+      playFallback.addEventListener('click', async () => {
+        // al tocar, intentamos reproducir todo lo necesario
+        try {
+          if (CONFIG.mode === 'video') await videoEl.play();
+          if (CONFIG.mode === 'audio') await audioEl.play();
+          hidePlayFallback();
+        } catch (e) {
+          console.warn('fallback play failed', e);
+        }
+      });
+
+      // ====== Handlers para targetFound / targetLost (MindAR events) ======
+      // Nota: MindAR emite eventos 'targetFound' y 'targetLost' sobre el entity ancla.
+      anchorEl.addEventListener('targetFound', async () => {
+        console.log('Target encontrado: modo=', CONFIG.mode);
+
+        if (CONFIG.mode === 'video') {
+          // Intentar reproducir video (puede requerir gesto en iOS Safari)
+          try {
+            await videoEl.play();
+            hidePlayFallback();
+          } catch (err) {
+            console.warn('Video play() falló — mostrar fallback para reproducir manualmente', err);
+            showPlayFallback();
+          }
+        } else if (CONFIG.mode === 'audio') {
+          try {
+            await audioEl.play();
+            hidePlayFallback();
+          } catch (err) {
+            console.warn('Audio play() falló — mostrar fallback', err);
+            showPlayFallback();
+          }
+        } else if (CONFIG.mode === 'slideshow') {
+          // Arranca el slideshow: cambiamos #poster periódicamente
+          if (slideInterval) clearInterval(slideInterval);
+          slideIndex = 0;
+          // asegurar poster inicial
+          posterEl.src = CONFIG.slides[slideIndex];
+          slideInterval = setInterval(() => {
+            slideIndex = (slideIndex + 1) % CONFIG.slides.length;
+            posterEl.src = CONFIG.slides[slideIndex];
+          }, CONFIG.slideDurationMs);
+        } else if (CONFIG.mode === 'imageFlash') {
+          // flash: mostramos una imagen por un breve periodo
+          posterEl.src = CONFIG.flashImage;
+          setTimeout(() => {
+            // opcional: volvemos a la imagen previa o la dejamos vacía
+            posterEl.src = CONFIG.slides && CONFIG.slides[0] ? CONFIG.slides[0] : '';
+          }, CONFIG.flashDurationMs);
+        }
+      });
+
+      anchorEl.addEventListener('targetLost', () => {
+        console.log('Target perdido — parando media');
+        if (CONFIG.mode === 'video') {
+          try { videoEl.pause(); videoEl.currentTime = 0; } catch(e){}
+        }
+        if (CONFIG.mode === 'audio') {
+          try { audioEl.pause(); audioEl.currentTime = 0; } catch(e){}
+        }
+        if (CONFIG.mode === 'slideshow') {
+          if (slideInterval) { clearInterval(slideInterval); slideInterval = null; }
+          // opcional: restaurar slide inicial
+          if (CONFIG.slides && CONFIG.slides.length>0) posterEl.src = CONFIG.slides[0];
+        }
+        // ocultar fallback
+        hidePlayFallback();
+      });
+
+      // ====== Recomendación adicional: esperar a que la escena AR esté lista ======
+      const sceneEl = document.querySelector('a-scene');
+      sceneEl.addEventListener('arReady', () => console.log('MindAR listo'));
+      sceneEl.addEventListener('arError', (e) => console.error('MindAR error', e));
+
+      // ====== Opcional: botón para forzar detección (debug) ======
+      // Puedes añadir aquí botones del DOM para cambiar CONFIG.mode dinámicamente,
+      // o cambiar la ruta del video en tiempo de ejecución (videoEl.src = '...';)
     });
   </script>
 </body>
