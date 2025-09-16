@@ -1,40 +1,17 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-  <meta charset="UTF-8" />
-  <title>Prueba AR - Esfera Azul</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <script src="https://cdn.jsdelivr.net/npm/aframe@1.4.2/dist/aframe.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.1.4/dist/mindar-image-aframe.prod.js"></script>
-  <style>
-    body, html { margin: 0; padding: 0; overflow: hidden; }
-    #ar-container { width: 100vw; height: 100vh; }
-  </style>
-</head>
-<body>
-  <div id="ar-container">
-    <a-scene
-      mindar-image="imageTargetSrc: targets.mind"
-      embedded
-      color-space="sRGB"
-      renderer="colorManagement: true, physicallyCorrectLights"
-      vr-mode-ui="enabled: false"
-      device-orientation-permission-ui="enabled: true"
-    >
-      <a-assets></a-assets>
 
-      <mindar-image-target targetIndex="0">
-        <a-sphere
-          position="0 0 0"
-          radius="0.3"
-          color="#0000FF"
-          segments-height="18"
-          segments-width="36"
-        ></a-sphere>
-      </mindar-image-target>
-
+<html>
+  <head>
+    <meta name="viewport1" content="width=device-width, initial-scale=1" />
+    <script src="https://cdn.jsdelivr.net/gh/hiukim/mind-ar-js@1.2.5/dist/mindar-image.prod.js"></script>
+    <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/hiukim/mind-ar-js@1.2.5/dist/mindar-image-aframe.prod.js"></script>
+  </head>
+  <body>
+    <a-scene mindar-image="imageTargetSrc: ./targets.mind;" vr-mode-ui="enabled: false" device-orientation-permission-ui="enabled: false">
       <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
+      <a-entity mindar-image-target="targetIndex: 0">
+        <a-plane color="blue" opaciy="0.5" position="0 0 0" height="0.552" width="1" rotation="0 0 0"></a-plane>
+      </a-entity>
     </a-scene>
-  </div>
-</body>
+  </body>
 </html>
