@@ -33,8 +33,18 @@
         <video id="meditech-video" src="assets/MEDITECH_INDUSTRIES_25.mp4" preload="auto" loop muted crossorigin="anonymous"></video>
       </a-assets>
 
-     <mindar-image-target targetIndex="0">
-  <a-box position="0 0 0" depth="0.1" height="0.1" width="0.1" color="#FF0000"></a-box>
+    <mindar-image-target targetIndex="0">
+  <a-video
+    src="#meditech-video"
+    width="1.5"
+    height="0.85"
+    position="0 0 0"
+    rotation="0 0 0"
+    autoplay
+    muted
+    crossorigin="anonymous"
+    play-on-click
+  ></a-video>
 </mindar-image-target>
 
       <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
